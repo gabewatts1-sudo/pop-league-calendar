@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VR League Master Calendar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap');
+
+  :root {
+    --bg:       #0a0e1a;
+    --surface:  #111827;
+    --surface2: #1a2235;
+    --border:   #1e2d45;
+    --border2:  #263548;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #00d4ff;
+    --arc:    #4472C4; --cal:    #ED7D31; --cl:     #70AD47;
+    --cclass: #9B59B6; --ffc:    #E74C3C; --genx:   #F39C12;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Exo 2', sans-serif; min-height: 100vh;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .app { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 20px 60px; }
+
+  /* ── Header ── */
+  header {
+    padding: 24px 0 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .logo-img { display:flex; align-items:center; flex-shrink:0; }
+  .header-text h1 { font-family: 'Rajdhani', sans-serif; font-size: 24px; font-weight: 700;
+    letter-spacing: 2px; color: #fff; text-transform: uppercase; }
+  .header-text p { font-size: 11px; color: var(--muted); font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px; margin-top: 2px; }
+  .status-pill { margin-left: auto; padding: 6px 14px; border-radius: 20px;
+    font-size: 11px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; }
+  .status-pill.connected { background: rgba(112,173,71,0.15); border: 1px solid #70AD47; color: #70AD47; }
+  .status-pill.disconnected { background: rgba(231,76,60,0.15); border: 1px solid #E74C3C; color: #E74C3C; }
+  .status-pill.loading { background: rgba(0,212,255,0.1); border: 1px solid var(--accent); color: var(--accent); }
+
+  /* ── Config bar ── */
+  .config-bar {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+    padding: 16px 20px; margin-top: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+  }
+  .config-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }
+  .config-group label { font-size: 10px; color: var(--muted); font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px; text-transform: uppercase; }
+  .config-group input {
+    background: var(--bg); border: 1px solid var(--border2); color: var(--text);
+    border-radius: 6px; padding: 9px 12px; font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; outline: none; transition: border-color .2s; width: 100%;
+  }
+  .config-group input:focus { border-color: var(--accent); }
+  .config-group input::placeholder { color: var(--muted); }
+  .connect-btn {
+    padding: 9px 24px; background: linear-gradient(135deg, var(--accent), #0066ff);
+    border: none; border-radius: 6px; color: #000; font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer;
+    text-transform: uppercase; white-space: nowrap; transition: all .2s;
+    box-shadow: 0 4px 16px rgba(0,212,255,0.2);
+  }
+  .connect-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,212,255,0.35); }
+
+  .config-hint {
+    font-size: 11px; color: var(--muted); font-family: 'Share Tech Mono', monospace;
+    margin-top: 8px; padding: 10px 14px; background: var(--bg);
+    border-radius: 6px; border: 1px dashed var(--border2); line-height: 1.7;
+  }
+  .config-hint a { color: var(--accent); }
+
+  /* ── League filter ── */
+  .league-filters { display: flex; gap: 8px; padding: 14px 0 6px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 11px; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+  .filter-btn {
+    padding: 5px 14px; border-radius: 20px; font-size: 11px; cursor: pointer;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 1px;
+    border: 2px solid transparent; color: #fff; text-transform: uppercase;
+    opacity: 0.45; transition: opacity .15s, transform .1s;
+  }
+  .filter-btn.on { opacity: 1; }
+  .filter-btn:hover { transform: scale(1.05); }
+  .filter-all { background: var(--surface2); border-color: var(--border2); color: var(--muted); }
+  .filter-all.on { color: var(--text); border-color: var(--accent); }
+
+  /* ── Controls ── */
+  .cal-controls {
+    display: flex; align-items: center; gap: 12px; padding: 16px 0 14px; flex-wrap: wrap;
+  }
+  .cal-nav { display: flex; align-items: center; gap: 8px; }
+  .nav-btn {
+    background: var(--surface); border: 1px solid var(--border2); color: var(--text);
+    border-radius: 6px; width: 34px; height: 34px; cursor: pointer; font-size: 18px;
+    transition: all .15s; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .cal-title { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; min-width: 220px; text-align: center; }
+  .view-toggle { margin-left: auto; display: flex; gap: 6px; }
+  .view-btn {
+    padding: 7px 18px; border-radius: 6px; font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2);
+    background: transparent; color: var(--muted); transition: all .2s;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .view-btn.active { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+
+  /* ── Overlap banner ── */
+  .overlap-banner {
+    background: rgba(255,221,0,0.07); border: 1px solid rgba(255,221,0,0.25);
+    border-radius: 8px; padding: 12px 18px; margin-bottom: 14px;
+    font-size: 12px; color: #ffdd00; font-family: 'Share Tech Mono', monospace;
+    display: none; line-height: 1.6;
+  }
+  .overlap-banner.visible { display: block; }
+  .overlap-banner strong { font-family: 'Rajdhani', sans-serif; font-size: 15px;
+    letter-spacing: 1px; display: block; margin-bottom: 4px; }
+
+  /* ── Month grid ── */
+  .month-grid { display: none; }
+  .month-grid.visible { display: block; }
+  .dow-headers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 2px; }
+  .dow-header { text-align: center; padding: 8px; font-size: 11px;
+    font-family: 'Share Tech Mono', monospace; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; }
+  .days-grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .day-cell {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; min-height: 105px; padding: 8px; position: relative;
+  }
+  .day-cell.other-month { opacity: 0.3; }
+  .day-cell.today { border-color: var(--accent); }
+  .day-num { font-size: 13px; font-weight: 600; color: var(--muted);
+    font-family: 'Share Tech Mono', monospace; margin-bottom: 5px; }
+  .day-cell.today .day-num { color: var(--accent); }
+  .event-chip {
+    border-radius: 4px; padding: 3px 7px; margin-bottom: 3px; font-size: 10px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 0.5px;
+    color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 4px; cursor: default;
+  }
+  .conflict-dot { position: absolute; top: 7px; right: 7px;
+    width: 8px; height: 8px; border-radius: 50%; background: #ffdd00;
+    box-shadow: 0 0 8px #ffdd00; }
+
+  /* ── Week grid ── */
+  .week-grid { display: none; overflow-x: auto; }
+  .week-grid.visible { display: block; }
+  .week-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+  .week-table th {
+    background: var(--surface); padding: 10px 8px; text-align: center;
+    font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .week-table th.today-col { color: var(--accent); border-color: var(--accent); }
+  .week-table td {
+    border: 1px solid var(--border); padding: 5px; vertical-align: top;
+    background: var(--surface); min-width: 110px;
+  }
+  .week-table .time-col {
+    width: 72px; text-align: right; padding-right: 10px;
+    font-size: 10px; font-family: 'Share Tech Mono', monospace;
+    color: var(--muted); background: var(--bg); white-space: nowrap;
+  }
+  .week-conflict-cell { background: rgba(255,221,0,0.05) !important; }
+
+  /* ── Empty / loading states ── */
+  .state-box {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    border: 1px dashed var(--border2); border-radius: 12px; line-height: 2;
+  }
+  .state-box .icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* ── Refresh btn ── */
+  .refresh-btn {
+    padding: 7px 16px; background: transparent; border: 1px solid var(--border2);
+    color: var(--muted); border-radius: 6px; cursor: pointer; font-size: 12px;
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; transition: all .2s;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media(max-width:600px){
+    .day-cell { min-height: 70px; }
+    .config-group { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo-img">
+      <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABoAeUDASIAAhEBAxEB/8QAHQAAAQUBAQEBAAAAAAAAAAAACAAFBgcJBAMCAf/EAGAQAAAEAwMCEAgICgYHCQEAAAABAgMEBQYHCBESIRMYMTU3OFFVcnN0lLGys9MJNEFhcXV2tBQyMzaBkaHRFRYiUleClsHD0iMkQlaSoxdDRGKTlaImRUZTY2SEwuHx/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAQFAgMHBgH/xAA4EQACAQICBwUGBgEFAAAAAAAAAQIDBAURBhIxUXFysSEzNDVhEyIyQYGRFCOhssHh0UJSYuLw/9oADAMBAAIRAxEAPwCRXrrwdbWV2jwVOU5ASF+DelLUYpUbDOLcy1OOpPOlxJYYILyboqLTnWq70UjzF7vgvCI7OMs9noftnwZllVOU8qy+lFKkMrUo5LBmZnCNmZnoCPMAAz051q29NI8xe74LTnWq70UjzF7vgeJ01Th6sglR/wDw2/uDfMrP6DmSMiY0TTcYncflbK+lIAB7TnWq70UjzF7vgtOdatvTSPMXu+F9W6XV6IqenouNoiVsU7UTLZrh0wxmmGiTIsdDW38VOOoSk4YHgZ4lmAKUXR08qyvICi5bCmU2jIo4bQ3PydCNOJrUrcJBJUZ+XBJgC8dOdarvRSPMXu+HW1e8tmdhfhTVM02tgv8AWplkQaPr0XAFHY9YBZ5ZzLYY2JNCzadISRvTSOZS46a/KbZKxJotUiJOB4apnqi2CIiIiIsCAGfOnOtW3ppHmL3fBac61bemkeYvd8Ddr6zyiq6lzkDVNOS+YpWk0peW0RPN+dDhflJP0GM4bydkcbZDXX4K0dcZJ41BvyuLXhluNkeCkLwzZaTMiPDMZGk82OBAWDpzrVd6KR5i93wWnOtV3opHmL3fA4KcpemTpyWkdOyjxRr/AGJv8wvMO1VKUsr41NSY/TAt/wAoABLTnWrb00jzF7vgtOdarvRSPMXu+ByRdB0PFtKaiqMp19tRYKS7LGVEZbhkaRRl4G6zR9R09GTagpWzIahh2zcah4YsmGi8Cx0M29RCj1CNOBY6pHqkBR2nOtW3ppHmL3fBac61bemkeYvd8JT4OSUQEZN65bmsrhohxhqDSSYmHStTZ5T+UX5RZtQsfR5gY/4sU1jj+L0p5k39wAA/TnWq70UjzF7vgtOdarvRSPMXu+DjfIlkthb1FKwcNL4RiGdhZfojLbKUoXjFOEeKSLA8SIiz+QG/+LNN/wB35TzNv7gAB+nOtV3opHmL3fBac61XeikeYvd8CevZ0/IGLvFXvsSSWNOtwram1ohUEpJ6M3nIyLMYfrCacp56xKh3XZDK3HHKfgVrWqEbM1KNhBmZnhnMzMzx84AEPTnWrb00jzF7vgtOdarvRSPMXu+BxVBTNN/gCYF+L0pw+Cu/7E3+afmGRYAJLTnWrb00jzF7vgtOdarvRSPMXu+A2j2g4dyLjGYVosXHnEtoLdMzwLpABGac61XeikeYvd8FpzrVd6KR5i93wOeV0fTMHK4SDKnpThDsIaL+pt6iUkW55h0nTFNHq09KeZN/cAAP051q29NI8xe74LTnWrb00jzF7vhIvCF05LZZW9FTCAlkJCtxkM6w4TLCUJXobiDLHAs+ZwGcVM02RERU/KSItQig2/uAAH6c61bemkeYvd8FpzrVd6KR5i93wPH8Wqc3glXM2/uC/FqnP7vyrmbf3AADtOdarvRSPMXu+C051q29NI8xe74FveCp6QM2HVs81IpWhxuRxa0LTCII0qJpRkZHhmMjz4jzu7U9IHbCqKedkcsccck0Ota1QiDNSjQRmZnhnMzz4gATNOdarvRSPMXu+C051qu9FI8xe74HbEUzTZsOEdPyk/yT1YJvc9AzVu6WQxlrtoTspJ5cFJYEtGmcW2RZTbZmZJQjEsMtRkZFjmIiUefDAwJ8V821YzwKUUjif/sX++HXFXubaYWHKIiqXp1hk9RxyVxKUn9Ju4AzLPbNKFoGDRD0rTUvl60pJKokmiXEO4fnuqxWry5jPAsc2AlxkRlgZYkYAz5051qu9FI8xe74LTnWrb00jzF7vgWdsVg9n9pMqiERknhZZOFJM2JrBMpbeQvyGvDAnE7qVeTHAyPOAhsXo6Npa9lIaNqaCYciYGbGy+0tJLbcIm1KSoiPVSojSosS1DIASvTnWq70UjzF7vgtOdatvTSPMXu+B4HTNNn/AOH5TzNv7hyzijKWmcpjJbEU9KVNRTC2VkcG3qKSZH5POAAZ051qu9FI8xe74LTnWrb00jzF7vhTNGytUBa/JpLMGkLXDz9iFiG1pxSo0xCUqIyPyZjzDVb8WKbxx/F6U48jb+4AAfpzrVd6KR5i93wWnOtV3opHmL3fB+8I5LZdLqlo/wDB8vhITRIOJy9AZSjKwWjDHAs+qf1gTwASWnOtV3opHmL3fBac61XeikeYvd8BtCABJac61bemkeYvd8FpzrVd6KR5i93wG5CVLUSUkZqM8CIvKYm0lkMNBtJciG0PRB5zNRYkk9wi/eI9xcxoLORcYPgtfFajjT7Etrfy/stvTnWq70UjzF7vgtObasX/AHRSPMXu+FelmLAh8PNNPINDzaHEn5FFiQgrFP8Aj+v9HqpaBPLsr9vL/wBixdOdarvRSPMXu+C051q29NI8xe74UXU8lTBYRUKR6Ao8FJ1cg/uD/TKEfgOGPITnI/J/vGJNS9jGkqkVnmUdnozXrX07OrLUcVnnlmms0uztW8tXTnWrb00jzF7vgtOdatvTSPMXu+Fd5CPzE/UItXLCUOwz6UEWURpMyLczl0jChfqrNQ1ciVi2iUsPtZXCq62WXZllteW9l26c61bemkeYvd8FpzrVt6aR5i93wqOj0IOSpM0JMzcVnwDlHttnARH5CfkleTzGMZ4hqVHDV/U2Wuh8ri0jc+2yzWeWr6b8yytOdatvTSPMXu+C051q29NI8xe74VVTKEfgKFPITiZK8n+8YcchH5ifqHyeJaknHV2eputdCZXFCFb22Wsk8tXes95YmnOtW3ppHmL3fBac61bemkeYvd8K7yEfmJ+ocU9Qj8DRZ5Cfkj8g+QxPWklq7fX+jK40IlRpSqe3zyTfw7lxNC7vVazW0ax6SVfPYeBZmEaqIS6iEbUhotDfW2WBKUo9RJY59UIRm5PtZ6X4yN96dCFoeDBr8Ijs4yz2eh+2fBwWUbFtJ+pIPsEAH/CI7OMs9noftnwcFlGxbSfqSD7BAAc6qncDTVMzOoZmbhQMthXIqINtOUrIQk1KwLyngQZbKrRaWtMpo5/SkY4/DIeNh5DrZtuMuERHkqSfmMjxLEjx1dUcV4PYKrr2fjexUKC8GqpR0jWCcTySj4cyLz6Gr7iABbgXrEqSgYC+xahHNMpSmDhkuMpySwSuK0Jxai3DxJZfrGChFE2Ukem3tcM839Tlnk/9IAXsKXtVt+ltBWx09Z5EU/ExhzXQDiI1L5IKHJ5w20YIwPLwMsTzpwLUxPMLoAK3vtuJSHAlnvSwAdQHHwhEhYmVh7U4UkvhEombLiF4Z8hzFtSfQZqQf6pAjhR9+fa11Bx8H7y2ALhpv5uy3kjXUIeNXz6Apal5nUc0N34DLYZcTEaEnKXkILE8C8p5h7U383ZbyRrqEIjeKLGweucd4ovslAB0svr+mbSKXTUdKxqomD0VTLiXEGhxlxJEZoWk9Q8FJPcwMjEpAs+Dc2Lqk9d/wGwUwAHG7TKmJLeOttgIZBIaKNhHkpLULRTecMvrWCOFB2G7aK2zjJZ2KxfgABS+jttKQ5JLve3QdYBS+jttKQ5JLve3QdYAqq91tcay5Gjtmw/2B7BtCezsB7ugMF7ra41lyNHbNh/sD2DaE9nYD3dAAlFQawzDkrvUMY6jYqoNYZhyV3qGMdQAhLrFpac3tepCXEglk/OoRKkn5U6Kk1fYRiIi4rmEtOZXkaVSaMpuHW/Er82Qw4ZH/iyQBpsEEEABT8JBB4UNSU5SkjXCTZbRGZZvy2jVn/4RBgTflSZpyrNTLUxwnOOG7/qRZt/mXJjbvEbFGWJwExhYhJ4amK9C/iDOUAbMFnLER+0epCo6gp5VJwhxpSqBdivg+iZGi5CTPJysDwx3cDD+n4pegV/eR2BK49SRPUMACtaLfDOrqCntLpoD4Gc1gHYPRzmuiaFoiTSasnQixwI9TEgVd3DYFof1JDdmQymGrN3DYFob1JDdmQAnj/yLnBPoA5+D5krMDY7MZsSSN+Zzl5S1YZ8hskoSn6Dyz/WMEY/8g5wT6BRVxIsLv8J55nGdoAL4FMWcW+y2s7b5/ZmzT8TCKlSohDUct8lE+phzIXigi/JIzxMjxPEiz4C5wDV2Xbx1nyqce8mADlAwW3yJiDvpWVT9pJJcmaFsvYF8ZTOXgo/PkuJL0JIE+B7vAbZ2xHlMd1WwAQgQQQAzdtgkRU9fSdg0NaG0/U0HGt5sxk+426Zl+stRfQNIgGF8yQ/ArzVm1QoLBEzdhWFZtVxiKTiePBdQX0AzwAEXhLPnLRnI4rrtgRAXfhLPnLRnI4rrtgRAAggggA50u0Ts8hyURGSTNefzEZl9uAnog9Ia+N8FXQJwKPEn+al6HVdCIpWEnvk+iOGdTJEsh0OraU5lrySIjwHWy4l1lDqcclaSUWO4YYa68Qh+NPoD1Ldbobik9BCNOnFUYzW15lzb3lWeJ1reT92Ki19dp8TZkoiWRLRkR5TZ4ekixL7R4UzrFC8E+sY7ojxd3gH0DhpnWKF4J9Yx8T/Ja9V0ZsnBLE4T+bhJfaUf8jiGSs2dEk+ieVpwlfQeb95B7HLOGdHlUS0RYmbZmRecs5faQxoT1KkZepsxW3/EWVWlvi/vl2fqcFHayJ4xQc4/xGI4pXQYbKN1kTxiv3Bzj/EYjildBjZX8Q+JEwryinyfwcdMawwvBV1jDkG2mNYYXgq6xhyGuv3suLJmFeBockeiI7F1OmHi3WPgZq0NZpx0TVwPDcHJH1KmKgnocoM06Ig05WiY4fYGab66xfHL6THKLunZ0clLLt+py690mxJzqUnU93NrZHZs3Gk1yfaz0vxkb706EFcn2s9L8ZG+9OhCaeZBr8Ijs4yz2eh+2fBwWUbFtJepIPsEAH/CI7OMs9noftnwcFlGxbSXqSD7BAAa7wewVXXs/G9ioUD4NT5p1jy6H7NQv+8HnsKrr2fjexUKB8GqX/ZGsD3Y+HL/AC1AAtxRllu23tc5FKuwIXmKKsqVlXtrXT3IOVl9TIAvUAre+24lIcCWe9LB1AFb323EpDgSz3pYAOoUffn2tdQcfB+8ti8BR9+fa11Bx8H7y2ALhpv5uy3kjXUIRG8VsD1z6ii+yUJdTfzdlvJGuoQiN4rYHrn1FF9koAUr4NzYuqT13/AbBTgWPBubF1Seu/4DYKcAUJYdtorbOMlnYrF9ihLDjxvRW2cZLOxWL7AAKX0dtpSHJJd726DrAKX0dtpSHJJd726DrAFVXutrjWXI0ds2H+wPYNoT2dgPd0BgvdbXGsuRo7ZsP9gewbQns7Ae7oAEoqDWGYcld6hjHUbFVBrDMOSu9QxjqAECV8HXLjirb5hHGgzbgpG8oleQlqdaSRfSRr+oDUDH8GjLlHGVvNlNmSUtwcOhe6Zm6pRfYn6wAaI+W3G3CM21pWRKNJmk8cDI8DL0keYfQruwabHNpJUyz/2erJtDkW4RRKjLpAHjekliZtd7rWGUWOhytcSWbysmTv8A9BliNgqzlaZ3R86kq05SY+Xvwpluk42pOH2jH0AbLp+KXoFf3kdgSuPUkT1DFgJ+KXoFf3kdgSuPUkT1DAGVA1Zu4bAtDepIbsyGUw1Zu4bAtD+pIbsyAE8f+Qc4J9Aou4ltfoP1lGdoYvR/5FfBPoFF3Etr9B+soztDAF7gGrsu3jrPlU495MHKAauy7eOs+VTj3kwAcoHu8BtnbEeUx3VbBCAe7wG2dsR5THdVsAEIEEEAKFvjSE4+Cs+nrbRKclVXQSVr8qWnlkk/rWlsX0I1aZTqqppF2UtknRSioWKaNSsCJbEQ28Wf9TASUABF4Sz5y0ZyOK67YEQHvenlMtnt5Kx+UTiDajYCKdeQ/DulihxOWg8DLylm1Bbv+g2yD9HVO8zSAMqwhfF+OlqdpC2OFllMSeElME5JmH1MQyMhBuG46Rqw3TJJfUKHADxR+vjfAV0CcCD0dr43wFdAnAosS776HV9CfLnzPoiPV14hD8afQHqW63Q3FJ6CDLXXiEPxp9AepbrdDcUnoIaqnhocWTbPzq55YHpEeLu8A+gcNM6xQvBPrGO6I8Xd4B9A4aZ1iheCfWMal3T4roywn5jDkl+6A4henUCCGkshspprQIF1jP8A0cQ4nP5jHbH+IxHFK6DH2y0lo3DSfyizWfpwL7h8R/iMRxSugxtlPXqa28gUrf8AD2Xsv9qaOOmNYYXgq6xhyDbTGsMLwVdYw5BX72XFjCvA0OSPRFczfXWL45fSY5RNImmoR+JdfVEPkpxZqMiwwLE8dwNc/kUPL4Aohp51Sssk4Kwwz4i7o3lKWrBPtOX4jo1f0faXEorVWb2rYaDXJ9rPS/GRvvToQVyfaz0vxkb706EJp5gGvwiOzjLPZ6H7Z8HBZRsW0l6kg+wQAf8ACI7OMs9noftnwcFlGxbSXqSD7BAA761kEPVVHzmmot51iHmsC9BuOtYZaEuINJmWObEsRF7DLKpDZJSTsgkkRFRioiIOJioqJwy3VmRJLMRYEkiIiIvTuifhABAfbF4tuMvbWxuNKJSENQDOJbqGySovoMjIS28FbXTNlVNRC3otiMqF1oygJY2sjcUsyPJW4RfEbI85merhgWJigfB1zGMm9eV/NZi+p+MjGWIh91Wqta3XFKP6TMwAaYBW99txKQ4Es96WDqAK3vtuJSHAlnvSwAdQo+/Pta6g4+D95bF4Cj78+1rqDj4P3lsAXDTfzdlvJGuoQ5K6p6Hq2jJzTEW+7DsTWCdhHHWiI1IJaTSZljmxLEddN/N2W8ka6hDvAEEsPsvkVk1GHTcjfiYonYhUVExMQZZbzqiJOOBZkkSUpIiLc8pmZnOwhUV4q3Gm7LKZiUNRsLHVO82aYCXIWSlJUeJE46RfFQWrn+NhgXlMgIvd8jGY+8zbc+wolITFQLOJH5W0uoV9qTBCgMvBvxkTMKhtDmEa8p+KiSg3nnVaq1qXEGpR+czMzBmgAFL6O20pDkku97dB1gFL6O20pDkku97dB1gCqr3W1xrLkaO2bD/YHsG0J7OwHu6AwXutrjWXI0ds2H+wPYNoT2dgPd0ACUVBrDMOSu9QxjqNiqg1hmHJXeqYx1ACB8+Djl6mLIZ5MFtmn4VO1pQr85KGWs/1qUQAYaVXHZecBdup9xTZoXFvRUQrHy4vrSR/SlKQBdwoO5dNDmUktAyl5WFaRzqfMlwkK6coX2ojNJkR4HhmFN3W7JZ/ZRLKhhp9OYCZuTWOTEoVCJWRJwIyMzyiLOeJZvJhqgC5RkJaHLESWv6ik7SCQ3ATWJhkpIsCSSHVJIvsGvYy4vXwCZbeJrSHQkkkuP8AhGBbrraHD+1YA1GT8UvQK/vI7AlcepInqGLAT8UvQK/vI7AdcepInqGAMqBqzdw2BaH9SQ3ZkMphqzdw2BaG9SQ3ZkAJ4/8AIucE+gUXcS2v0H6yjO0MXo/8i5wT6BRdxLa/QnrKM7QwBe4Bq7Lt46z5VOPeTBygGrsu3jrPlU495MAHKB7vAbZ2xHlMd1WwQgHu8BtnbEeUx3VbABCBvg5zAxc9mEkacP4bL22XX0H5EO5eQZeY9DWX6phwFLy6elBXypvIFngmaUhDPJ862X3MC/wuLP6ABdAQQQAF69RN5bIbyNj84nEY3BQEK68t99z4ractBYnuFn1Rbv8Apysg/SLTvPEgZvCWfOWjORxXXbAiAC+L8dVU7V9scLM6YnEJNoJuTMMKfhl5SCcJx1Rpx3SJSfrFDhBAB4o7XxvgK6BOBB6O18b4CugTgUWJd99Dq+hPlz5n0RHq68Qh+NPoD1Ldbobik9BBlrrxCH40+gPUt1uhuKT0ENVTw0OLJtn51c8sD0iPF3eAfQOGmdYoXgn1jHdEeLu8A+gcNM6xQvBPrGNS7p8V0ZYT8xhyS/dAcFqShOUo8CxIvrPAukfo4Z8tTcoiHE/GSklF6SMh2NLJxtLiTxJaSUX0jDV93WJca6deVLck/u2v4PoeMf4jEcUroMew8Y/xGI4pXQY+Q+JH247qXB9DjpjWGF4KusYcg20xrDC8FXWMOQzr97LiyNhXgaHJHojmXMIBC1IXGQ6VJPAyNwiMjDNVsbBvyom2Yll1ZupPBCyM9Q9wRub66xfHL6THKLahYRi4zzOe4ppbXrwq2rppJ5rPtNJrk+1npfjI33p0IK5PtZ6X4yN96dCFkeKBr8Ijs4yz2eh+2fBwWUbFtJepIPsEAH/CI7OMs9noftnwcFlGxbSXqSD7BAAb7en3oaxGt4iGecZebkMYpDjajSpJkyrAyMs5GMslVJUKk5Kp9NDLcOMc+8alXgs9hVdez8b2KxlAAPp1a3XFOOLUtajxUpR4mZ7pmC58Gn85az5HC9dwCIC78Gn85a05HC9dwAG6AVvfbcSkOBLPelg6gCt77biUhwJZ70sAHUKPvz7WuoOPg/eWxeAo+/Pta6g4+D95bAFw0383ZbyRrqEIpeDddYsNrZ5h1xp1uSRSkLQo0qSZNqwMjLUErpv5uy3kjXUIRG8VsD1z6ii+yUAMuF1FUC0Ghc9makHqpOLcMukNilGpRqUZmozxMzPOY/AgAYngz9ca74mB6XwagCvwZ+uNd8TA9L4NQAApfR22lIckl3vboOsApfR22lIckl3vboOsAVVe62uNZ8jR2zYf7A9g2hPZ2A93QI/e6Miu4VlieH9Ub7ZsSCwPYNoT2dgPd0ACUVBrDMOSu9QxjqNiqg1hmHJXeoYx1ACGrd3aXHK7CqKg1pyVlJodxadxS0Esy+tRjKdltbzyGWkmpxaiSlJeUzzEQ2Hp6CKWyCXS5JYFCwrTJfqoJP7gB3BCs70lRR9K2B1VO5XGPQca1DNtMPsqyXG1OvIaykmWcjLL1S1AL1yK0ytp5bc3Jqjq2cTWDipa+SGIyLW6jRE5KyURKM8DIkqz7mIAO0Z03/pemCvCPxKUkXw+Vw0QfnMiU1/DGiwBrwlEuJqtqSm2SRfCZc9Dme7oThK/igA5E/FL0Cv7yOwHXHqSJ6hiwS1CFfXkdgSuPUkT1DAGVA1Zu4bAtDepIbsyGUw1Zu4bAtD+pIbsyAE8f+RXwT6BRdxPa/QfrKM7Qxej/wAi5wT6BRVxE8bv8J5pnGdoAL4ANXZdvHWfKpx7yYOUA1dl28dZ8qnHvJgA5QPd4DbO2I8pjuq2CEA93gNs7YjymO6rYAIQCHbDUBU3f7oqOW4aGnoGGg3MPKT6n2ix+lZH9ALwZ+3+4t+W3i5ZMYVWTEQ0ohH2zPyLS86ZfaRADQIIcNPTJmcSCXTeHUSmY6FaiWzI8SNK0EovsMdwACLwlnzlozkcV12wIgLvwlnzlozkcV12wIgAQQQQAeKO18b4CugTgQejzwnjfAV0CcCixLvvodX0J8ufM+iI9XXiEPxp9AepbrdDcUnoIMtdeIQ/Gn0B6lut0NxSeghqqeGhxZNs/OrnlgekR4u7wD6Bw0zrFC8E+sY7ojxd3gH0DhpnWKF4J9YxqXdPiujLCfmEOSX7oH1UWskXwP3kPmm3tGksMrypTkH9GYfVQ6yRfF/vINtDPZUC+wZ523Moi8xl/wDg2xhnbN7mV9W49njlOm/9VNr6pt/wyQjxj/EYjildBj2HjH+IxHFK6DEaHxIvbjupcH0OOmNYYXgq6xhyDbTGsMLwVdYw5DOv3suLIuFeBockeiK5m+usXxy+kxyjqm+usXxy+kxyj0tP4FwOIXniKnF9TSa5PtZ6X4yN96dCCuT7Wel+MjfenQhmRwa/CI7OMs9noftnwcFlGxbSXqSD7BAB/wAIjs4yz2eh+2fBwWUbFtJ+pIPsEABsvA7BVdez8b2CxlANX7wOwXXXs/G9gsZQABAr/BszFhmvqqlK1YPxUrbfbLdJt3BXapAoCY2M15H2a2jSuroBBvFCrNMQxjgT7CiyVo9JkeJbhkR+QAazgcrdLBqkrq8BS9dyyZS5mVQRQqY5DylE62TDynDNBERkrKI8CzlgermFy2a19StodPNzulZqzGsKItFayiJ6HUZfEcRqpV6dXVLEs4lAAQoK/vMoaCu8R8I84lLswj4VhlJnnUpLmiHh+q2YvObzKXyeWvzObR0NAQUOg1vREQ6TbbaS8qlHmIhnVfDtph7UqrhpXT7izpmUGr4OtSTScU8rMp3A85JwIiSR58MT8uBAaH0383ZbyRrqEIleK2B659RRfZKEupv5uy3kjXUIRG8VsD1z6ii+yUAMpAgggAXXg04+GbqispWt1JRMRBQz7aDPOpDa1pUZeg3UfWQN4ZOWJ2gTCzK0aW1ZAIN5DCjbi4fHD4QwrMtGPkPDOR+QyIxqBZ3XFMV/TjM+paaMx0I4RZaUqLRGF4YmhxOqhRbh+ksSwMAUreAsFqO0G3Slq2lczl7Esg0Q7Uch41E62TLynMpBERkrKJWGGJYGW4eYjQhzTSPgZXLn5jM4yHgoKHQbj8REOE222ktVSlHmIvOYAqS+nMGIC7dVBPH+VElDw7RY/GUp9v8AcRn9Al1gewbQns7Ae7oAUXzLc4O0qaw1L0s4tdNSt43VRBkafhr+BpyyI85ISRmRY6uUZ7gNewPYNoT2dgPd0ACWzRhcVLIqGbNJLeZW2k1amJpMixGfGk6tf/Op3n6v5BogEAM24m7/AFxZ/aBQqaoblrkPOJ/DQjfwSJ0QyPREGrEjSWBZOO7qDSQVRbPL/wAJWqWSMm2a0tTyJiDwLU0OEcWR/Wkha4AH+/3MEwV3mKhjPA4+ZQsORY6uCjd/hgQrnkYUDeSo941ZJLiHmdXV0SHcQRfWogSfhJI1LdmtMy4z/KfnBvEW6TbK0n2hAQbEY05dbJRcblmhLU+glLPH+zo6MovpLEgBrQBM8JRLycoik5rk54eZOw+Vh/5jWVh/lAswP9/yXlGXeomJwxOBmUK/juYqNv8AiAAgC1CFfXkdgOuPUkT1DFgivryOwHXHqSJ6hgDKgas3cNgWhvUkN2ZDKYas3cNgWhvUkN2ZACeP/IucE+gD14P+ZMxliMVBIP8ApICdRLbhcIkLI/8Aq+wEK/8AIOcE+gZx3SLZ2LK64joGfKcOmpwokxS0EajhXUmeQ8SS1SwMyURZzLA8+TgYGj4HSyCwipaPvJ1PaJMJnLXpRHrjHIRDJq0ZRxDuXgpJlgnJLEscTxzfQQMomUvnEsh5nKo2HjoGJQTjERDuEttxJ6hpUWYyHUAEBxt7jWHL2VjMuS4RvsKiXloxzklzAkn9Jtq+oXRaNXlK2fU85PKrmzEBDJI9CQaiN2IURY5DaNVavMWpqngWJgFLPrQphaffRpyrI5s2G3pgTUHDY4/B4dLayQjHynqmZ+VSjAGiIz28Ifs8QnqKH7V4aEjPfwiOzvBeoYftXwAVlz2ffjBd2pV5ZlosGwuAcIjxydBWpCP+gkH9ItwCd4NqfFEUPVNNKWo1wMxbjEkZ/wBl5vJwL6WTP9bzgsQAJN9Wlm62ttstpR2MVBtzTR4db6UZakJNaMTIsSxPAh+6SCmv79zfmbf3iRXittTYtyh7rIBJgDLe8vZfB2S2hs0xAzV+Zsuy9uMJ55okKI1LWk04EeH9jH6RV4JHwiWztA+oIftnwNwAdqTWSZ6zj/aJRF9RidCsmHVsPIebPBaFEpJ+chP5PM2JlDktsyS6RfltmedJ/d5xT4lSlrKoth0fQjEKSpTtJPKWea9exdMjxqOXOzKEbaZWhKkLyvy8cDLDAOEM3oMO01jjkIJOO7gWA9AhWupJwUPkj2tOzpQuJ3CXvSST+h4xziWoJ9xR4EltRn9Q5KZ1iheCfWMNNWThpTJwEKslmZ/0q0nmL/dL94dqZ1iheCfWMSJUpQt9aXzf8Mp6GIUrrGHSpPNQg836uUc/tkj6qHWSL4v94jtEPZEzcZxzONn9ZH//AESOoNZIvi/3iFSJ7QJxCueTRCSfoPMfSJVpDXtpx/8AbCk0huPw2NWtTcl9m2n+hYY8Y/xGI4pXQY9h4x/iMRxSugxWQ+JHt7jupcH0OOmNYYXgq6xhyDbTGsMLwVdYw5DOv3suLI2FeBockeiIlH05Hvxz7yFw+S44pRYqPHAz9A5IunY+GhnIhxbBobTlHgo8cPqE4HFPdZovijEulfVc4x+R56+0Uw9U6lbJ55N7fntDjuT7Wel+MjfenQgrk+1npfjI33p0IXpykg96675W1qlo8FUlNx0iZg2pS1CKTGxLiF5aXHVGZEltRYYLLy7ohMJd0vKwkKzCQlprEPDsoS2001UcalDaElgSUkSMCIiIiIiCCAHzH3cbyMwgnoGPtKhouFfQaHmH6ijVtuJPVSpJt4GXmMRrSZWrb60lz57uQggAtJlatvrSXPnu5C0mVq2+tJc+e7kIIAONPXTrcKdmbc0kNVU/K45vMmIhJpENLItzFLRHhmLNqCxEWd3wEFgVqkkP0xJn0wwQQAh9bXb7xVauoXVddyWbk2eU23ETV820HnLFKNByUnnPORCNaTK1bfWkufPdyEEAJQzd3vLssoZZtPababSSUIRUkaSUpIsCIiJGYiHnMLuF5CYwL0DMLSYWMhH0mh1h+ooxbbiT1SUk28DLzGEEAI3pMrVt9aS5893IWkytW31pLnz3chBABaTK1bfWkufPdyHSm7qdulNTAphT1XSKUxZYFo0HNolpRljjgZpaLEvMeYIIAWNC0HfDhmtDbtTp9Sd1xwnD+tUMZiH1zd3vH1wpP4119JZq2gyNDL00fJlJ7pNkySCPPqkWIQQAiukytW31pLnz3ciSwF3G8lAQTMFA2lQ0LCsIJtllmoo1CG0lmJKUk3gRFuEEEAPbS+XnP0qJ/aaO/kC0vl5z9Kif2mjv5AggBzxF268fExcNGRFpEI9EwhqOGecqGMUtk1FkqNCjbxTiWY8NUh0aXy85+lRP7TR38gQQAaqgur281DoP4frSTzfQMdB+HTqKf0PHDHJy2jwxwLHDcINbVzW1ppxLrU4pRDiDJSVJj3iNJlqGR6DmMIIASnS+XnP0qJ/aaO/kHHOLtF4mcy9cvnFoUDMYNwyNcPFT+MdbUZHiWKVNmR4GRGEEAOxN3u82lJJTamgiIsCIqljs3/QOeY3b7yEygXoCY2kQsZCPpyXWH6hjHG3E7ikm2ZGXpCCAEc0mVq2+tJc+e7kSOXXb7yEtgWYCXWkQsHCMJyWmGKhjG2207iUk2REXoCCAHuq73ebUk0qtTQpJlgZHUsdgZf4BFdJlatvrSXPnu5CCAEnoq7leNotSvxVr2TSlCzxW0xNXyaUebOaDZyTPNqmQma6Cvhqh9AO1On8nDDEnSJX+IobH7QggBW1Q3TrcKimbk0n1VU/NI5zMqIi5pEOrMtzFTRnhnPNqDml1z+2OXRzMdL6gpmDi2FZbT7EyfbcbVupUTWJH5yCCAEj0vl5z9KaP2mjv5AxTu6VbbPI74dO6pkEzizSSNHjJtEvOZJahZSmjPAtwIIAesgupW6U++4/IawkkpddTkOLgpxEsKWnHHAzQ0WJY+QPGl8vOfpTR+00d/IEEAG6YXXrwExmUJM5hXUri46DPGFiX55FrdYPHH8hZt4pz58xkHHS+XnP0qJ/aaO/kCCADHPLpdt09jfh07qqQTSKyCRo8ZNol5zJLULKU0Z4Fiebzjg0mVq2+tJc+e7kIIALSZWrb60lz57uR9N3NbWW1ktub0ohRaikx7xGX+SEEB9TaeaO9N022tJERVFS2Bbsa6f8ABHnE3RrZols23qgpZSD1U/D3iI/qZCCGtUaaeaivsS5Yjdzjqyqya3az/wAnFpMrVt9aS5893I6Grn1sTTZNtT+mW0FqJTMnyIv8oIIZtJ7SNCpOm84NrgJy5/bG6g0OVBTK0HqpVMnzI/8AKHgVzK1cjxKa0lz57uQggUUtgnVnUec23xOnSh2zf3jpv/mcR3Q/FXQbZFJNKqhppSTLAyOZxGBl/wAIIIY+zjuNru677HN/dn41c+tiabJtqf0y2gtRKZk+RF9GhD60ods3946b/wCZxHdBBD7qRfyPiuq8VkpvLixaUO2b+8dN/wDM4juh8uXQLY3EGhyoKaWlRYGlUyfMj/yggg1I7g7qu1k5v7sLO7zRU1s6seklIz1+CdmEEuIU6qFcUto8t9bhYGpKT1FFjm1QgghkaD//2Q==" alt="Population: ONE" style="height:44px;display:block;filter:drop-shadow(0 0 10px rgba(180,0,0,0.5));">
+    </div>
+    <div class="header-text">
+      <p>// LIVE COMPETITION SCHEDULE // POWERED BY GOOGLE SHEETS</p>
+    </div>
+    <div class="status-pill disconnected" id="status-pill">NOT CONNECTED</div>
+  </header>
+
+  <!-- Config -->
+  <div class="config-bar">
+    <div class="config-group" style="flex:2">
+      <label>Google Sheet ID</label>
+      <input type="text" id="sheet-id" placeholder="Paste your Sheet ID here  (e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms)" />
+    </div>
+    <div class="config-group" style="flex:0.8">
+      <label>Tab Name</label>
+      <input type="text" id="sheet-tab" value="Schedule Data" placeholder="Schedule Data" />
+    </div>
+    <button class="connect-btn" onclick="connectSheet()">⚡ Connect</button>
+    <button class="refresh-btn" onclick="refreshData()" title="Re-fetch latest data">↻ Refresh</button>
+  </div>
+
+  <div class="config-hint" id="setup-hint">
+    <strong style="color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:1px;">HOW TO CONNECT YOUR GOOGLE SHEET</strong><br>
+    1. Open your Google Sheet → <strong>File → Share → Publish to web</strong> → publish the <em>Schedule Data</em> tab as CSV → click Publish<br>
+    2. Also make sure sharing is set to <strong>"Anyone with the link can view"</strong><br>
+    3. Copy the Sheet ID from the URL: <code style="color:var(--accent)">docs.google.com/spreadsheets/d/<strong style="color:#ffdd00">THIS_PART</strong>/edit</code><br>
+    4. Paste the ID above and click Connect — the calendar will auto-refresh every 5 minutes
+  </div>
+
+  <!-- League filters -->
+  <div class="league-filters">
+    <span class="filter-label">FILTER:</span>
+    <button class="filter-btn filter-all on" onclick="toggleFilter('ALL')">All Leagues</button>
+    <button class="filter-btn on" style="background:#4472C4" onclick="toggleFilter('ARC')">ARC</button>
+    <button class="filter-btn on" style="background:#ED7D31" onclick="toggleFilter('CAL')">CAL</button>
+    <button class="filter-btn on" style="background:#70AD47" onclick="toggleFilter('CL')">CL</button>
+    <button class="filter-btn on" style="background:#9B59B6" onclick="toggleFilter('CClass')">CClass</button>
+    <button class="filter-btn on" style="background:#E74C3C" onclick="toggleFilter('FFC')">FFC</button>
+    <button class="filter-btn on" style="background:#F39C12" onclick="toggleFilter('GenX')">GenX</button>
+  </div>
+
+  <!-- Calendar controls -->
+  <div class="cal-controls">
+    <div class="cal-nav">
+      <button class="nav-btn" onclick="navCal(-1)">‹</button>
+      <div class="cal-title" id="cal-title">—</div>
+      <button class="nav-btn" onclick="navCal(1)">›</button>
+    </div>
+    <div class="view-toggle">
+      <button class="view-btn active" id="btn-month" onclick="setView('month')">Month</button>
+      <button class="view-btn" id="btn-week"  onclick="setView('week')">Week</button>
+    </div>
+  </div>
+
+  <div class="overlap-banner" id="overlap-banner">
+    <strong>⚡ SCHEDULING CONFLICTS DETECTED</strong>
+    <span id="overlap-text"></span>
+  </div>
+
+  <!-- Month view -->
+  <div class="month-grid visible" id="month-view">
+    <div class="dow-headers">
+      <div class="dow-header">Sun</div><div class="dow-header">Mon</div>
+      <div class="dow-header">Tue</div><div class="dow-header">Wed</div>
+      <div class="dow-header">Thu</div><div class="dow-header">Fri</div>
+      <div class="dow-header">Sat</div>
+    </div>
+    <div class="days-grid-cal" id="month-cells">
+      <div class="state-box" style="grid-column:1/-1">
+        <div class="icon">📡</div>
+        Connect your Google Sheet above to load the live schedule
+      </div>
+    </div>
+  </div>
+
+  <!-- Week view -->
+  <div class="week-grid" id="week-view">
+    <table class="week-table">
+      <thead><tr id="week-header"></tr></thead>
+      <tbody id="week-body"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const LEAGUE_COLORS = {
+  ARC:'#4472C4', CAL:'#ED7D31', CL:'#70AD47',
+  CClass:'#9B59B6', FFC:'#E74C3C', GenX:'#F39C12'
+};
+const DAY_MAP = {
+  sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6,
+  sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6
+};
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let comps = [];
+let calDate = new Date(2026, 0, 1);
+let calView = 'month';
+let activeFilters = new Set(['ARC','CAL','CL','CClass','FFC','GenX']);
+let sheetId = localStorage.getItem('vr_sheet_id') || '';
+let sheetTab = localStorage.getItem('vr_sheet_tab') || 'Schedule Data';
+let refreshTimer = null;
+
+// Restore saved sheet config
+if (sheetId) {
+  document.getElementById('sheet-id').value = sheetId;
+  document.getElementById('sheet-tab').value = sheetTab;
+}
+
+// ── Connect ──────────────────────────────────────────────────────────────────
+function connectSheet() {
+  sheetId  = document.getElementById('sheet-id').value.trim();
+  sheetTab = document.getElementById('sheet-tab').value.trim() || 'Schedule Data';
+  if (!sheetId) { setStatus('disconnected','ENTER SHEET ID'); return; }
+  localStorage.setItem('vr_sheet_id',  sheetId);
+  localStorage.setItem('vr_sheet_tab', sheetTab);
+  document.getElementById('setup-hint').style.display = 'none';
+  fetchData();
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchData, 5 * 60 * 1000); // refresh every 5 min
+}
+
+function refreshData() { if (sheetId) fetchData(); }
+
+// ── Fetch CSV from Google Sheets ──────────────────────────────────────────────
+async function fetchData() {
+  setStatus('loading', 'LOADING...');
+  const tabEncoded = encodeURIComponent(sheetTab);
+
+  // Try multiple URL formats in sequence
+  const urls = [
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${tabEncoded}`,
+    `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&sheet=${tabEncoded}`,
+    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=0`,
+  ];
+
+  // Also try via a CORS proxy as fallback
+  const proxyUrls = urls.map(u => `https://corsproxy.io/?${encodeURIComponent(u)}`);
+  const allUrls = [...urls, ...proxyUrls];
+
+  let lastError = null;
+  for (const url of allUrls) {
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) { lastError = 'HTTP ' + res.status; continue; }
+      const text = await res.text();
+      if (!text || text.includes('<html') || text.includes('<!DOCTYPE')) {
+        lastError = 'Got HTML instead of CSV — check sharing settings';
+        continue;
+      }
+      comps = parseCSV(text);
+      setStatus('connected', `LIVE · ${comps.length} COMPS · ${new Date().toLocaleTimeString()}`);
+      renderCalendar();
+      return;
+    } catch(e) {
+      lastError = e.message;
+      continue;
+    }
+  }
+
+  setStatus('disconnected', `FAILED — ${lastError || 'check Sheet ID & sharing'}`);
+  document.getElementById('setup-hint').style.display = 'block';
+  document.getElementById('setup-hint').innerHTML = `
+    <strong style="color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:1px;">CONNECTION TROUBLESHOOTING</strong><br>
+    The most common cause is the file being opened locally. Try one of these fixes:<br><br>
+    <strong style="color:var(--accent)">Option A — Host the file (recommended):</strong><br>
+    Drag this HTML file to <a href="https://app.netlify.com/drop" target="_blank" style="color:var(--accent)">app.netlify.com/drop</a> — free, takes 30 seconds. Open the Netlify URL and connect from there.<br><br>
+    <strong style="color:var(--accent)">Option B — Test the CSV URL directly:</strong><br>
+    Paste this in your browser: <code style="color:#ffdd00;word-break:break-all">https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${tabEncoded}</code><br>
+    If it downloads a CSV file, your Sheet is public and Option A will work.<br><br>
+    <strong style="color:var(--accent)">Option C — Use Google Sheets directly:</strong><br>
+    Share the Sheet link with your leagues for data entry, and bookmark the Netlify URL for the calendar view.
+  `;
+}
+
+// ── Parse CSV ─────────────────────────────────────────────────────────────────
+// Columns: A=League, B=Mode, C=Name, D=Start, E=End,
+//          F=Sun, G=Mon, H=Tue, I=Wed, J=Thu, K=Fri, L=Sat,
+//          M=SessionStart, N=SessionEnd, O=Notes, P=By, Q=Updated, R=Active?
+function parseCSV(csv) {
+  const rows = csv.trim().split('\n').map(r => {
+    const cells = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < r.length; i++) {
+      if (r[i] === '"') { inQ = !inQ; }
+      else if (r[i] === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else cur += r[i];
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+
+  // Find header row (contains "League")
+  let dataStart = 0;
+  for (let i = 0; i < Math.min(6, rows.length); i++) {
+    if (rows[i][0] && rows[i][0].toLowerCase().includes('league')) { dataStart = i + 1; break; }
+  }
+
+  const result = [];
+  for (let i = dataStart; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r[0] || r[0].trim() === '') continue;
+    const active = (r[17] || '').toLowerCase();
+    if (active === 'no') continue;
+
+    const league = r[0].trim();
+    const mode   = r[1].trim();
+    const name   = (r[2] || '').trim();
+    const start  = parseDate(r[3]);
+    const end    = parseDate(r[4]);
+    // F-L = indices 5-11 = Sun(0) Mon(1) Tue(2) Wed(3) Thu(4) Fri(5) Sat(6)
+    const days = [5,6,7,8,9,10,11]
+      .map((col, dow) => (r[col]||'').trim().toLowerCase() === 'yes' ? dow : -1)
+      .filter(d => d >= 0);
+    const tStart = (r[12] || '').trim();
+    const tEnd   = (r[13] || '').trim();
+
+    if (!league || !start || !end || days.length === 0) continue;
+    result.push({ league, mode, name, start, end, days, tStart, tEnd });
+  }
+  return result;
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  s = s.trim().replace(/"/g,'');
+  const parts = s.split('/');
+  if (parts.length === 3) {
+    const [m,d,y] = parts.map(Number);
+    if (!isNaN(m) && !isNaN(d) && !isNaN(y)) return new Date(y, m-1, d);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+// Parse "7:00 PM" → minutes since midnight for comparison
+function parseTime(s) {
+  if (!s) return null;
+  s = s.trim();
+  const m = s.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return null;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  const ap = m[3].toUpperCase();
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+// ── Get events for a date ─────────────────────────────────────────────────────
+function getEventsForDate(d) {
+  const dow = d.getDay();
+  d.setHours(0,0,0,0);
+  return comps.filter(c => {
+    if (!activeFilters.has(c.league)) return false;
+    const s = new Date(c.start); s.setHours(0,0,0,0);
+    const e = new Date(c.end);   e.setHours(0,0,0,0);
+    return d >= s && d <= e && c.days.includes(dow);
+  });
+}
+
+// Check if two events overlap in time
+function timesOverlap(a, b) {
+  const aS = parseTime(a.tStart), aE = parseTime(a.tEnd) || aS + 120;
+  const bS = parseTime(b.tStart), bE = parseTime(b.tEnd) || bS + 120;
+  if (aS === null || bS === null) return true; // no time = assume overlap
+  return aS < bE && bS < aE;
+}
+
+// ── Detect overlaps for a month ───────────────────────────────────────────────
+function detectOverlaps(year, month) {
+  const conflicts = [];
+  const dim = new Date(year, month+1, 0).getDate();
+  for (let d = 1; d <= dim; d++) {
+    const dt = new Date(year, month, d);
+    const evts = getEventsForDate(dt);
+    for (let i = 0; i < evts.length; i++)
+      for (let j = i+1; j < evts.length; j++)
+        if (timesOverlap(evts[i], evts[j]))
+          conflicts.push({ d, a: evts[i], b: evts[j] });
+  }
+  return conflicts;
+}
+
+// ── Render Calendar ───────────────────────────────────────────────────────────
+function renderCalendar() {
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  if (calView === 'month') {
+    document.getElementById('cal-title').textContent = `${MONTHS[m]} ${y}`;
+    renderMonth(y, m);
+  } else {
+    renderWeek(calDate);
+  }
+
+  // Overlaps
+  const overlaps = detectOverlaps(y, m);
+  const banner = document.getElementById('overlap-banner');
+  if (overlaps.length > 0 && comps.length > 0) {
+    const msgs = [...new Set(overlaps.map(o => `${MONTHS_S[m]} ${o.d}: ${o.a.league} vs ${o.b.league}`))];
+    document.getElementById('overlap-text').textContent = msgs.slice(0,8).join('  ·  ') + (msgs.length > 8 ? `  +${msgs.length-8} more` : '');
+    banner.classList.add('visible');
+  } else {
+    banner.classList.remove('visible');
+  }
+}
+
+function renderMonth(year, month) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDay = new Date(year, month, 1).getDay();
+  const dim = new Date(year, month+1, 0).getDate();
+  const prevDim = new Date(year, month, 0).getDate();
+  let total = firstDay + dim; total = total <= 35 ? 35 : 42;
+
+  if (comps.length === 0) {
+    document.getElementById('month-cells').innerHTML = `
+      <div class="state-box" style="grid-column:1/-1">
+        <div class="icon">📡</div>
+        Connect your Google Sheet above to load live competition data
+      </div>`;
+    return;
+  }
+
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    let day, cm = month, cy = year, other = false;
+    if (i < firstDay) { day = prevDim - firstDay + i + 1; cm = month-1; if(cm<0){cm=11;cy--;} other=true; }
+    else if (i >= firstDay + dim) { day = i - firstDay - dim + 1; cm = month+1; if(cm>11){cm=0;cy++;} other=true; }
+    else day = i - firstDay + 1;
+
+    const dt = new Date(cy, cm, day);
+    const isToday = dt.getTime() === today.getTime();
+    const evts = other ? [] : getEventsForDate(new Date(cy, cm, day));
+
+    let hasConflict = false;
+    if (evts.length > 1) {
+      outer: for (let a=0;a<evts.length;a++)
+        for (let b=a+1;b<evts.length;b++)
+          if (timesOverlap(evts[a],evts[b])) { hasConflict=true; break outer; }
+    }
+
+    const chips = evts.slice(0,4).map(e => {
+      const c = LEAGUE_COLORS[e.league] || '#888';
+      return `<div class="event-chip" style="background:${c}" title="${e.league}·${e.mode}${e.tStart?' '+e.tStart:''}${e.name?' — '+e.name:''}">
+        <span>${e.league}</span><span style="opacity:.65;font-weight:400">·${e.mode}</span>
+      </div>`;
+    }).join('');
+    const more = evts.length > 4 ? `<div style="font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;padding-left:2px">+${evts.length-4} more</div>` : '';
+
+    html += `<div class="day-cell${other?' other-month':''}${isToday?' today':''}">
+      ${hasConflict?'<div class="conflict-dot" title="Conflict!"></div>':''}
+      <div class="day-num">${day}</div>${chips}${more}
+    </div>`;
+  }
+  document.getElementById('month-cells').innerHTML = html;
+}
+
+function renderWeek(ref) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sun = new Date(ref); sun.setDate(sun.getDate() - sun.getDay());
+  const weekDates = Array.from({length:7}, (_,i) => { const d=new Date(sun); d.setDate(sun.getDate()+i); return d; });
+
+  // Header
+  let hHtml = '<th class="time-col">Time</th>';
+  weekDates.forEach(d => {
+    const isToday = d.getTime() === today.getTime();
+    hHtml += `<th${isToday?' class="today-col"':''}>${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${MONTHS_S[d.getMonth()]} ${d.getDate()}</th>`;
+  });
+  document.getElementById('week-header').innerHTML = hHtml;
+
+  // Title
+  const sm = MONTHS_S[weekDates[0].getMonth()], em = MONTHS_S[weekDates[6].getMonth()];
+  const yr = weekDates[0].getFullYear();
+  document.getElementById('cal-title').textContent = sm === em
+    ? `${sm} ${weekDates[0].getDate()}–${weekDates[6].getDate()}, ${yr}`
+    : `${sm} ${weekDates[0].getDate()} – ${em} ${weekDates[6].getDate()}, ${yr}`;
+
+  // Rows 8am–11pm
+  let bHtml = '';
+  for (let h = 8; h <= 23; h++) {
+    const ap = h < 12 ? 'AM' : 'PM', hd = h===12?12:h>12?h-12:h;
+    bHtml += `<tr><td class="time-col">${hd}:00 ${ap}</td>`;
+    weekDates.forEach(d => {
+      const evts = getEventsForDate(new Date(d)).filter(e => {
+        const t = parseTime(e.tStart);
+        return t !== null && Math.floor(t/60) === h;
+      });
+      const chips = evts.map(e => {
+        const c = LEAGUE_COLORS[e.league]||'#888';
+        return `<div class="event-chip" style="background:${c};margin-bottom:3px">${e.league}·${e.mode}</div>`;
+      }).join('');
+      const conflict = evts.length > 1;
+      bHtml += `<td${conflict?' class="week-conflict-cell"':''}>${chips}</td>`;
+    });
+    bHtml += '</tr>';
+  }
+  document.getElementById('week-body').innerHTML = bHtml;
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function navCal(dir) {
+  if (calView === 'month') calDate.setMonth(calDate.getMonth() + dir);
+  else calDate.setDate(calDate.getDate() + dir * 7);
+  renderCalendar();
+}
+
+function setView(v) {
+  calView = v;
+  document.getElementById('month-view').className = 'month-grid' + (v==='month'?' visible':'');
+  document.getElementById('week-view').className  = 'week-grid'  + (v==='week' ?' visible':'');
+  document.getElementById('btn-month').className  = 'view-btn'   + (v==='month'?' active':'');
+  document.getElementById('btn-week').className   = 'view-btn'   + (v==='week' ?' active':'');
+  renderCalendar();
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function toggleFilter(league) {
+  if (league === 'ALL') {
+    const allOn = activeFilters.size === 6;
+    if (allOn) activeFilters.clear();
+    else { activeFilters = new Set(['ARC','CAL','CL','CClass','FFC','GenX']); }
+  } else {
+    if (activeFilters.has(league)) activeFilters.delete(league);
+    else activeFilters.add(league);
+  }
+  // Update button states
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    const l = btn.textContent.trim();
+    if (l === 'All Leagues') btn.classList.toggle('on', activeFilters.size === 6);
+    else btn.classList.toggle('on', activeFilters.has(l));
+  });
+  renderCalendar();
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+function setStatus(state, msg) {
+  const el = document.getElementById('status-pill');
+  el.className = 'status-pill ' + state;
+  el.textContent = msg;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+calDate = new Date(); // default to current month
+document.getElementById('cal-title').textContent = `${MONTHS[calDate.getMonth()]} ${calDate.getFullYear()}`;
+
+// Auto-connect if ID was saved
+if (sheetId) {
+  document.getElementById('setup-hint').style.display = 'none';
+  connectSheet();
+}
+</script>
+</body>
+</html>
