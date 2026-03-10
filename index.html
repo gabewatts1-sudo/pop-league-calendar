@@ -128,6 +128,10 @@
   /* ── Week grid ── */
   .week-grid { display: none; overflow-x: auto; }
   .week-grid.visible { display: block; }
+
+  /* ── Day grid ── */
+  .day-grid { display: none; overflow-x: auto; }
+  .day-grid.visible { display: block; }
   .week-table { width: 100%; border-collapse: collapse; min-width: 720px; }
   .week-table th {
     background: var(--surface); padding: 10px 8px; text-align: center;
@@ -245,6 +249,14 @@
     <table class="week-table">
       <thead><tr id="week-header"></tr></thead>
       <tbody id="week-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Day view -->
+  <div class="day-grid" id="day-view">
+    <table class="week-table">
+      <thead><tr id="day-header"></tr></thead>
+      <tbody id="day-body"></tbody>
     </table>
   </div>
 
@@ -480,8 +492,10 @@ function renderCalendar() {
   if (calView === 'month') {
     document.getElementById('cal-title').textContent = `${MONTHS[m]} ${y}`;
     renderMonth(y, m);
-  } else {
+  } else if (calView === 'week') {
     renderWeek(calDate);
+  } else {
+    renderDay(calDate);
   }
 
   // Overlaps
@@ -590,8 +604,9 @@ function renderWeek(ref) {
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 function navCal(dir) {
-  if (calView === 'month') calDate.setMonth(calDate.getMonth() + dir);
-  else calDate.setDate(calDate.getDate() + dir * 7);
+  if (calView === 'month')      calDate.setMonth(calDate.getMonth() + dir);
+  else if (calView === 'week')  calDate.setDate(calDate.getDate() + dir * 7);
+  else if (calView === 'day')   calDate.setDate(calDate.getDate() + dir);
   renderCalendar();
 }
 
@@ -599,8 +614,10 @@ function setView(v) {
   calView = v;
   document.getElementById('month-view').className = 'month-grid' + (v==='month'?' visible':'');
   document.getElementById('week-view').className  = 'week-grid'  + (v==='week' ?' visible':'');
+  document.getElementById('day-view').className   = 'day-grid'   + (v==='day'  ?' visible':'');
   document.getElementById('btn-month').className  = 'view-btn'   + (v==='month'?' active':'');
   document.getElementById('btn-week').className   = 'view-btn'   + (v==='week' ?' active':'');
+  document.getElementById('btn-day').className    = 'view-btn'   + (v==='day'  ?' active':'');
   renderCalendar();
 }
 
