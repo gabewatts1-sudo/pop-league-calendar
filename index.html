@@ -245,12 +245,24 @@ function parseAppsScript(rows) {
 
 function parseDate(s) {
   if (!s) return null;
-  s = s.toString().trim().replace(/"/g,'');
-  const parts = s.split('/');
+  s = s.toString().trim();
+
+  // Google Sheets ISO format: "2026-03-14T07:00:00.000Z"
+  if (s.includes('T')) {
+    const iso = new Date(s);
+    if (!isNaN(iso)) {
+      // Use UTC date parts to avoid timezone shift
+      return new Date(iso.getUTCFullYear(), iso.getUTCMonth(), iso.getUTCDate());
+    }
+  }
+
+  // MM/DD/YYYY
+  const parts = s.replace(/"/g,'').split('/');
   if (parts.length === 3) {
     const [m,d,y] = parts.map(Number);
     if (!isNaN(m)&&!isNaN(d)&&!isNaN(y)) return new Date(y,m-1,d);
   }
+
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
@@ -259,7 +271,15 @@ function parseTime(s) {
   if (s === null || s === undefined || s === '') return null;
   s = s.toString().trim();
 
-  // Format: "7:00 PM" or "7:00:00 PM"
+  // Google Sheets ISO time: "1899-12-31T01:00:00.000Z" — extract UTC hours/mins
+  if (s.includes('T')) {
+    const iso = new Date(s);
+    if (!isNaN(iso)) {
+      return iso.getUTCHours() * 60 + iso.getUTCMinutes();
+    }
+  }
+
+  // "7:00 PM" or "7:00:00 PM"
   const ampm = s.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)/i);
   if (ampm) {
     let h = parseInt(ampm[1]), mn = parseInt(ampm[2]);
@@ -269,18 +289,13 @@ function parseTime(s) {
     return h*60+mn;
   }
 
-  // Format: "19:00" 24-hour
+  // "19:00" 24-hour
   const mil = s.match(/^(\d{1,2}):(\d{2})$/);
-  if (mil) {
-    return parseInt(mil[1])*60 + parseInt(mil[2]);
-  }
+  if (mil) return parseInt(mil[1])*60 + parseInt(mil[2]);
 
-  // Format: Google Sheets decimal fraction of day (e.g. 0.791666 = 19:00)
+  // Decimal fraction of day (0.791666 = 19:00)
   const num = parseFloat(s);
-  if (!isNaN(num) && num >= 0 && num < 1) {
-    const totalMins = Math.round(num * 24 * 60);
-    return totalMins;
-  }
+  if (!isNaN(num) && num >= 0 && num < 1) return Math.round(num * 24 * 60);
 
   return null;
 }
