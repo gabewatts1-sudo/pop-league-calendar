@@ -271,11 +271,13 @@ function parseTime(s) {
   if (s === null || s === undefined || s === '') return null;
   s = s.toString().trim();
 
-  // Google Sheets ISO time: "1899-12-31T01:00:00.000Z" — extract UTC hours/mins
+  // Google Sheets ISO time: "1899-12-31T01:00:00.000Z" — extract UTC hours/mins then convert to EST (UTC-5)
   if (s.includes('T')) {
     const iso = new Date(s);
     if (!isNaN(iso)) {
-      return iso.getUTCHours() * 60 + iso.getUTCMinutes();
+      const utcMins = iso.getUTCHours() * 60 + iso.getUTCMinutes();
+      const estMins = (utcMins - 300 + 1440) % 1440; // subtract 5 hours, wrap around midnight
+      return estMins;
     }
   }
 
