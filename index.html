@@ -49,36 +49,7 @@
   .status-pill.disconnected { background: rgba(231,76,60,0.15); border: 1px solid #E74C3C; color: #E74C3C; }
   .status-pill.loading { background: rgba(0,212,255,0.1); border: 1px solid var(--accent); color: var(--accent); }
 
-  /* ── Config bar ── */
-  .config-bar {
-    background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
-    padding: 16px 20px; margin-top: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
-  }
-  .config-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }
-  .config-group label { font-size: 10px; color: var(--muted); font-family: 'Share Tech Mono', monospace;
-    letter-spacing: 1px; text-transform: uppercase; }
-  .config-group input {
-    background: var(--bg); border: 1px solid var(--border2); color: var(--text);
-    border-radius: 6px; padding: 9px 12px; font-family: 'Share Tech Mono', monospace;
-    font-size: 12px; outline: none; transition: border-color .2s; width: 100%;
-  }
-  .config-group input:focus { border-color: var(--accent); }
-  .config-group input::placeholder { color: var(--muted); }
-  .connect-btn {
-    padding: 9px 24px; background: linear-gradient(135deg, var(--accent), #0066ff);
-    border: none; border-radius: 6px; color: #000; font-family: 'Rajdhani', sans-serif;
-    font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer;
-    text-transform: uppercase; white-space: nowrap; transition: all .2s;
-    box-shadow: 0 4px 16px rgba(0,212,255,0.2);
-  }
-  .connect-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,212,255,0.35); }
-
-  .config-hint {
-    font-size: 11px; color: var(--muted); font-family: 'Share Tech Mono', monospace;
-    margin-top: 8px; padding: 10px 14px; background: var(--bg);
-    border-radius: 6px; border: 1px dashed var(--border2); line-height: 1.7;
-  }
-  .config-hint a { color: var(--accent); }
+  /* config bar removed — sheet hardcoded */
 
   /* ── League filter ── */
   .league-filters { display: flex; gap: 8px; padding: 14px 0 6px; flex-wrap: wrap; align-items: center; }
@@ -216,27 +187,12 @@
     <div class="status-pill disconnected" id="status-pill">NOT CONNECTED</div>
   </header>
 
-  <!-- Config -->
-  <div class="config-bar">
-    <div class="config-group" style="flex:2">
-      <label>Google Sheet ID</label>
-      <input type="text" id="sheet-id" placeholder="Paste your Sheet ID here  (e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms)" />
-    </div>
-    <div class="config-group" style="flex:0.8">
-      <label>Tab Name</label>
-      <input type="text" id="sheet-tab" value="Schedule Data" placeholder="Schedule Data" />
-    </div>
-    <button class="connect-btn" onclick="connectSheet()">⚡ Connect</button>
-    <button class="refresh-btn" onclick="refreshData()" title="Re-fetch latest data">↻ Refresh</button>
+  <!-- Sheet ID hardcoded — no config needed -->
+  <div style="display:none">
+    <input type="text" id="sheet-id" value="19dkA4vigGmSPnNtKiiJQXBVOAYaXGIcU" />
+    <input type="text" id="sheet-tab" value="Schedule Data" />
   </div>
-
-  <div class="config-hint" id="setup-hint">
-    <strong style="color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:1px;">HOW TO CONNECT YOUR GOOGLE SHEET</strong><br>
-    1. Open your Google Sheet → <strong>File → Share → Publish to web</strong> → publish the <em>Schedule Data</em> tab as CSV → click Publish<br>
-    2. Also make sure sharing is set to <strong>"Anyone with the link can view"</strong><br>
-    3. Copy the Sheet ID from the URL: <code style="color:var(--accent)">docs.google.com/spreadsheets/d/<strong style="color:#ffdd00">THIS_PART</strong>/edit</code><br>
-    4. Paste the ID above and click Connect — the calendar will auto-refresh every 5 minutes
-  </div>
+  <div id="setup-hint" style="display:none"></div>
 
   <!-- League filters -->
   <div class="league-filters">
@@ -653,14 +609,15 @@ function setStatus(state, msg) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-calDate = new Date(); // default to current month
+calDate = new Date();
 document.getElementById('cal-title').textContent = `${MONTHS[calDate.getMonth()]} ${calDate.getFullYear()}`;
 
-// Auto-connect if ID was saved
-if (sheetId) {
-  document.getElementById('setup-hint').style.display = 'none';
-  connectSheet();
-}
+// Hardcoded — connect automatically on load
+sheetId  = "19dkA4vigGmSPnNtKiiJQXBVOAYaXGIcU";
+sheetTab = "Schedule Data";
+fetchData();
+clearInterval(refreshTimer);
+refreshTimer = setInterval(fetchData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
