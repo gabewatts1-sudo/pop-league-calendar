@@ -277,7 +277,7 @@ function parseTime(s) {
     const iso = new Date(s);
     if (!isNaN(iso)) {
       const mins = iso.getHours() * 60 + iso.getMinutes();
-      return (mins - 180 + 1440) % 1440;
+      return (mins - 60 + 1440) % 1440;
     }
   }
 
