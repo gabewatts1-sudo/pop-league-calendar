@@ -204,6 +204,16 @@ async function fetchData() {
     const json = await res.json();
     comps = parseAppsScript(json);
     setStatus('connected', `LIVE · ${comps.length} COMPS · ${new Date().toLocaleTimeString()}`);
+    // DEBUG — log first comp to console
+    if (comps.length > 0) {
+      console.log('Sample comp:', JSON.stringify(comps[0]));
+      console.log('tStart raw:', comps[0].tStart, '→ parsed mins:', parseTime(comps[0].tStart));
+      console.log('days:', comps[0].days);
+      // Check what today matches
+      const today = new Date();
+      console.log('Events today:', getEventsForDate(today).length);
+    }
+    console.log('Raw first row from sheet:', JSON.stringify(json[0]));
     renderCalendar();
   } catch(e) {
     setStatus('disconnected', `FAILED — ${e.message}`);
