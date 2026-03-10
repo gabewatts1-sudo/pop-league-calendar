@@ -461,25 +461,39 @@ function renderDay(ref) {
   let bHtml='', hasAny=false;
   for(let h=0;h<24;h++) {
     for(let m2=0;m2<60;m2+=30) {
-      const evts=events.filter(e=>{const t=parseTime(e.tStart);return t===h*60+m2;});
-      if(evts.length===0 && !hasAny && h<11) continue;
-      if(evts.length>0) hasAny=true;
+      const slotMins=h*60+m2;
+      const activeEvts=events.filter(e=>{
+        const tS=parseTime(e.tStart);
+        let tE=parseTime(e.tEnd);
+        if(tS===null) return false;
+        if(tE===null||tE<=tS) tE=tS+60;
+        return slotMins>=tS && slotMins<tE;
+      });
+      const startEvts=events.filter(e=>parseTime(e.tStart)===slotMins);
+      if(activeEvts.length===0 && !hasAny && h<11) continue;
+      if(activeEvts.length>0) hasAny=true;
       const isHalf=m2===30;
       const label=isHalf?`<span style="font-size:9px;opacity:.5">${fmtSlotLabel(h,m2)}</span>`:fmtSlotLabel(h,m2);
-      const chips=evts.map(e=>{
+      let cellStyle='';
+      if(activeEvts.length===1){
+        const c=LEAGUE_COLORS[activeEvts[0].league]||'#888';
+        cellStyle=`background:${c}18;border-left:4px solid ${c};`;
+      } else if(activeEvts.length>1){
+        cellStyle=`background:rgba(255,180,0,.12);border-left:4px solid #e6a800;`;
+      }
+      const chips=startEvts.map(e=>{
         const c=LEAGUE_COLORS[e.league]||'#888';
-        const endT=e.tEnd?` → ${e.tEnd}`:'';
-        return `<div class="event-chip" style="background:${c};padding:7px 12px;font-size:12px;margin-bottom:4px"><span style="font-size:13px">${e.league}</span><span style="opacity:.75;font-weight:400"> · ${e.mode}${e.name?' — '+e.name:''}${endT}</span></div>`;
+        const endMins=parseTime(e.tEnd);
+        const endLabel=endMins!==null?` → ${fmtSlotLabel(Math.floor(endMins/60),endMins%60)}`:'';
+        return `<div class="event-chip" style="background:${c};padding:7px 12px;font-size:12px;margin-bottom:4px"><span style="font-size:13px">${e.league}</span><span style="opacity:.8;font-weight:400"> · ${e.mode}${e.name?' — '+e.name:''}${endLabel}</span></div>`;
       }).join('');
-      const conflict=evts.length>1;
-      bHtml+=`<tr class="${isHalf?'half-hour':''}"><td class="time-col">${label}</td><td style="${conflict?'background:rgba(255,221,0,.06)':''}">${chips}</td></tr>`;
+      bHtml+=`<tr class="${isHalf?'half-hour':''}"><td class="time-col">${label}</td><td style="${cellStyle}">${chips}</td></tr>`;
     }
   }
   if(!hasAny) bHtml=`<tr><td></td><td style="padding:50px;text-align:center;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:13px">No comps scheduled for this day</td></tr>`;
   document.getElementById('day-body').innerHTML=bHtml;
 }
 
-// ── Navigation ────────────────────────────────────────────────────────────────
 function navCal(dir) {
   if      (calView==='month') calDate.setMonth(calDate.getMonth()+dir);
   else if (calView==='week')  calDate.setDate(calDate.getDate()+dir*7);
