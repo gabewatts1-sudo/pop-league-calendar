@@ -423,35 +423,26 @@ function renderWeek(ref) {
       bHtml+=`<tr class="${isHalf?'half-hour':''}"><td class="time-col">${label}</td>`;
       weekDates.forEach(d=>{
         const allEvts=getEventsForDate(new Date(d));
-        // Events active in this slot (for background color)
         const activeEvts=allEvts.filter(e=>{
           const tS=parseTime(e.tStart);
           let tE=parseTime(e.tEnd);
           if(tS===null) return false;
-          if(tE===null) tE=tS+60; // default 1hr if no end time
-          if(tE<=tS) tE=tS+60;   // guard against bad data
+          if(tE===null||tE<=tS) tE=tS+60;
           return slotMins>=tS && slotMins<tE;
         });
-        // Only show label chip at start slot
-        const startEvts=allEvts.filter(e=>{
-          const tS=parseTime(e.tStart);
-          return tS===slotMins;
-        });
-        const conflict=activeEvts.length>1;
-        let cellStyle=conflict?'background:rgba(255,180,0,.18);':'';
-        // Fill cell background with league color if event is active
-        if(activeEvts.length===1) {
+        const startEvts=allEvts.filter(e=>parseTime(e.tStart)===slotMins);
+        let cellStyle='';
+        if(activeEvts.length===1){
           const c=LEAGUE_COLORS[activeEvts[0].league]||'#888';
-          cellStyle=`background:${c}22;border-left:3px solid ${c};`;
-        } else if(activeEvts.length>1) {
-          cellStyle=`background:rgba(255,180,0,.15);border-left:3px solid #e6a800;`;
+          cellStyle=`background:${c}18;border-left:3px solid ${c};padding:2px 4px;`;
+        } else if(activeEvts.length>1){
+          cellStyle=`background:rgba(255,180,0,.15);border-left:3px solid #e6a800;padding:2px 4px;`;
         }
         const chips=startEvts.map(e=>{
           const c=LEAGUE_COLORS[e.league]||'#888';
           const endMins=parseTime(e.tEnd);
-          console.log('tEnd value:', e.tEnd, '→ parsed:', endMins);
           const endLabel=endMins!==null?` → ${fmtSlotLabel(Math.floor(endMins/60),endMins%60)}`:'';
-          return `<div class="event-chip" style="background:${c};margin-bottom:2px;font-size:10px">${e.league} · ${e.mode}${endLabel}</div>`;
+          return `<div class="event-chip" style="background:${c};font-size:10px;white-space:nowrap">${e.league} · ${e.mode}${endLabel}</div>`;
         }).join('');
         bHtml+=`<td style="${cellStyle}">${chips}</td>`;
       });
