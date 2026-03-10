@@ -271,13 +271,13 @@ function parseTime(s) {
   if (s === null || s === undefined || s === '') return null;
   s = s.toString().trim();
 
-  // Google Sheets ISO time: "1899-12-31T01:00:00.000Z" — extract UTC hours/mins then convert to EST (UTC-5)
+  // Google Sheets stores times as ISO on 1899-12-31
+  // The time value is stored in LOCAL time of the sheet's timezone
+  // We read it as a local Date object (not UTC) to get the correct hours
   if (s.includes('T')) {
     const iso = new Date(s);
     if (!isNaN(iso)) {
-      const utcMins = iso.getUTCHours() * 60 + iso.getUTCMinutes();
-      const estMins = (utcMins - 300 + 1440) % 1440; // subtract 5 hours, wrap around midnight
-      return estMins;
+      return iso.getHours() * 60 + iso.getMinutes();
     }
   }
 
