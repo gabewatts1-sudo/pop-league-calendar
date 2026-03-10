@@ -293,40 +293,44 @@ function connectSheet() {
 
 function refreshData() { if (sheetId) fetchData(); }
 
-// ── Fetch CSV from Google Sheets ──────────────────────────────────────────────
+// ── Fetch data from Google Apps Script ───────────────────────────────────────
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzap_87m6U6RSS0QXslQiE5gxwwtbrKZH9t2camKSEFP7PXy1SKSG0D-E9V-cDdLSTC_Q/exec";
+
 async function fetchData() {
   setStatus('loading', 'LOADING...');
-  const tabEncoded = encodeURIComponent(sheetTab);
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${tabEncoded}`;
-
-  // Try three different CORS proxies in sequence
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`,
-  ];
-
-  let lastError = null;
-  for (const url of proxies) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) { lastError = 'HTTP ' + res.status; continue; }
-      const text = await res.text();
-      if (!text || text.includes('<html') || text.includes('<!DOCTYPE') || text.length < 10) {
-        lastError = 'Bad response from proxy';
-        continue;
-      }
-      comps = parseCSV(text);
-      setStatus('connected', `LIVE · ${comps.length} COMPS · ${new Date().toLocaleTimeString()}`);
-      renderCalendar();
-      return;
-    } catch(e) {
-      lastError = e.message;
-      continue;
-    }
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    comps = parseAppsScript(json);
+    setStatus('connected', `LIVE · ${comps.length} COMPS · ${new Date().toLocaleTimeString()}`);
+    renderCalendar();
+  } catch(e) {
+    setStatus('disconnected', `FAILED — ${e.message}`);
+    console.error(e);
   }
-  setStatus('disconnected', `FAILED — ${lastError || 'unknown error'}`);
-  console.error('All proxies failed:', lastError);
+}
+
+// ── Parse Apps Script JSON response ──────────────────────────────────────────
+function parseAppsScript(rows) {
+  const result = [];
+  for (const r of rows) {
+    const league = (r['League'] || '').trim();
+    const mode   = (r['Game Mode'] || '').trim();
+    const name   = (r['Comp Name'] || '').trim();
+    const start  = parseDate(r['Start Date']);
+    const end    = parseDate(r['End Date']);
+    const days   = [
+      r['Sun'], r['Mon'], r['Tue'], r['Wed'], r['Thu'], r['Fri'], r['Sat']
+    ].map((v, i) => (v||'').toString().toLowerCase() === 'yes' ? i : -1)
+     .filter(d => d >= 0);
+    const tStart = (r['Session Start'] || '').trim();
+    const tEnd   = (r['Session End']   || '').trim();
+
+    if (!league || !start || !end || days.length === 0) continue;
+    result.push({ league, mode, name, start, end, days, tStart, tEnd });
+  }
+  return result;
 }
 
 // ── Parse gviz JSON table ─────────────────────────────────────────────────────
