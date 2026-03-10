@@ -185,7 +185,7 @@ const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','N
 const DAYS_S   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_L   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzap_87m6U6RSS0QXslQiE5gxwwtbrKZH9t2camKSEFP7PXy1SKSG0D-E9V-cDdLSTC_Q/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqAtKajut-UFC0ufPvoSD0D3o0rmzuX0j2Vi9sdf_4Y5E_y6iVi-J0Bvm8U0aHzRkyLA/exec";
 const SHEET_ID  = "1x0XCVGKv1MUFYSMoBs-irciI9pO7YovYLprZccNVDL0";
 const SHEET_TAB = "Schedule Data";
 
@@ -271,13 +271,13 @@ function parseTime(s) {
   if (s === null || s === undefined || s === '') return null;
   s = s.toString().trim();
 
-  // Google Sheets stores times as ISO on 1899-12-31 in UTC
-  // Sheet timezone is UTC+4 offset from stored value, so add 240 mins to get local time
+  // Google Sheets stores times as ISO on 1899-12-31
+  // Offset of +960 mins converts stored UTC value to correct local time
   if (s.includes('T')) {
     const iso = new Date(s);
     if (!isNaN(iso)) {
       const utcMins = iso.getUTCHours() * 60 + iso.getUTCMinutes();
-      return (utcMins + 180) % 1440;
+      return (utcMins + 960) % 1440;
     }
   }
 
