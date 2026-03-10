@@ -277,7 +277,7 @@ function parseTime(s) {
     const iso = new Date(s);
     if (!isNaN(iso)) {
       const utcMins = iso.getUTCHours() * 60 + iso.getUTCMinutes();
-      return (utcMins + 240) % 1440;
+      return (utcMins + 180) % 1440;
     }
   }
 
