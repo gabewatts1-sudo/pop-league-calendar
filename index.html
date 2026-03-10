@@ -449,6 +449,7 @@ function renderWeek(ref) {
         const chips=startEvts.map(e=>{
           const c=LEAGUE_COLORS[e.league]||'#888';
           const endMins=parseTime(e.tEnd);
+          console.log('tEnd value:', e.tEnd, '→ parsed:', endMins);
           const endLabel=endMins!==null?` → ${fmtSlotLabel(Math.floor(endMins/60),endMins%60)}`:'';
           return `<div class="event-chip" style="background:${c};margin-bottom:2px;font-size:10px">${e.league} · ${e.mode}${endLabel}</div>`;
         }).join('');
