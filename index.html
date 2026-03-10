@@ -297,28 +297,36 @@ function refreshData() { if (sheetId) fetchData(); }
 async function fetchData() {
   setStatus('loading', 'LOADING...');
   const tabEncoded = encodeURIComponent(sheetTab);
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${tabEncoded}`;
 
-  // Use the gviz JSON endpoint — works cross-origin from hosted pages
-  const jsonUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${tabEncoded}`;
+  // Try three different CORS proxies in sequence
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(csvUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(csvUrl)}`,
+  ];
 
-  try {
-    const res = await fetch(jsonUrl);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-
-    // Google wraps the response in /*O_o*/ google.visualization.Query.setResponse({...});
-    const jsonStr = text.replace(/^[^{]*/, '').replace(/\);?\s*$/, '');
-    const json = JSON.parse(jsonStr);
-
-    if (!json.table) throw new Error('No table in response');
-
-    comps = parseGviz(json.table);
-    setStatus('connected', `LIVE · ${comps.length} COMPS · ${new Date().toLocaleTimeString()}`);
-    renderCalendar();
-  } catch(e) {
-    setStatus('disconnected', `FAILED — ${e.message}`);
-    console.error(e);
+  let lastError = null;
+  for (const url of proxies) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) { lastError = 'HTTP ' + res.status; continue; }
+      const text = await res.text();
+      if (!text || text.includes('<html') || text.includes('<!DOCTYPE') || text.length < 10) {
+        lastError = 'Bad response from proxy';
+        continue;
+      }
+      comps = parseCSV(text);
+      setStatus('connected', `LIVE · ${comps.length} COMPS · ${new Date().toLocaleTimeString()}`);
+      renderCalendar();
+      return;
+    } catch(e) {
+      lastError = e.message;
+      continue;
+    }
   }
+  setStatus('disconnected', `FAILED — ${lastError || 'unknown error'}`);
+  console.error('All proxies failed:', lastError);
 }
 
 // ── Parse gviz JSON table ─────────────────────────────────────────────────────
