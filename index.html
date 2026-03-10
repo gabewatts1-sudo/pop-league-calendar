@@ -7,26 +7,26 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap');
 :root {
-  --bg:#0a0e1a; --surface:#111827; --surface2:#1a2235;
-  --border:#1e2d45; --border2:#263548; --text:#e2e8f0; --muted:#64748b;
-  --accent:#00d4ff;
+  --bg:#f0f2f5; --surface:#ffffff; --surface2:#e8ecf0;
+  --border:#d1d9e0; --border2:#c0cad4; --text:#1a2332; --muted:#6b7a8d;
+  --accent:#0066cc;
   --arc:#4472C4; --cal:#ED7D31; --cl:#70AD47;
   --cclass:#9B59B6; --ffc:#E74C3C; --genx:#F39C12;
 }
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:var(--bg); color:var(--text); font-family:'Exo 2',sans-serif; min-height:100vh; }
 body::before { content:''; position:fixed; inset:0;
-  background-image: linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
+  background-image: linear-gradient(rgba(0,102,204,.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,102,204,.03) 1px,transparent 1px);
   background-size:40px 40px; pointer-events:none; z-index:0; }
 .app { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:0 20px 60px; }
 
-header { padding:24px 0 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+header { padding:24px 0 20px; border-bottom:2px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; background:var(--surface); padding-left:20px; padding-right:20px; margin:0 -20px; }
 .logo-img { display:flex; align-items:center; flex-shrink:0; }
 .header-text p { font-size:11px; color:var(--muted); font-family:'Share Tech Mono',monospace; letter-spacing:1px; margin-top:2px; }
 .status-pill { margin-left:auto; padding:6px 14px; border-radius:20px; font-size:11px; font-family:'Share Tech Mono',monospace; letter-spacing:1px; }
-.status-pill.connected { background:rgba(112,173,71,.15); border:1px solid #70AD47; color:#70AD47; }
-.status-pill.disconnected { background:rgba(231,76,60,.15); border:1px solid #E74C3C; color:#E74C3C; }
-.status-pill.loading { background:rgba(0,212,255,.1); border:1px solid var(--accent); color:var(--accent); }
+.status-pill.connected { background:rgba(112,173,71,.12); border:1px solid #4a9a2a; color:#2d7a0f; }
+.status-pill.disconnected { background:rgba(231,76,60,.12); border:1px solid #c0392b; color:#a93226; }
+.status-pill.loading { background:rgba(0,102,204,.1); border:1px solid var(--accent); color:var(--accent); }
 
 .league-filters { display:flex; gap:8px; padding:14px 0 6px; flex-wrap:wrap; align-items:center; }
 .filter-label { font-size:11px; color:var(--muted); font-family:'Share Tech Mono',monospace; }
@@ -54,9 +54,9 @@ header { padding:24px 0 20px; border-bottom:1px solid var(--border); display:fle
   text-transform:uppercase; letter-spacing:1px; }
 .view-btn.active { background:var(--surface2); border-color:var(--accent); color:var(--accent); }
 
-.overlap-banner { background:rgba(255,221,0,.07); border:1px solid rgba(255,221,0,.25);
+.overlap-banner { background:rgba(255,180,0,.1); border:1px solid rgba(200,140,0,.35);
   border-radius:8px; padding:12px 18px; margin-bottom:14px;
-  font-size:12px; color:#ffdd00; font-family:'Share Tech Mono',monospace;
+  font-size:12px; color:#8a6000; font-family:'Share Tech Mono',monospace;
   display:none; line-height:1.6; }
 .overlap-banner.visible { display:block; }
 .overlap-banner strong { font-family:'Rajdhani',sans-serif; font-size:15px; letter-spacing:1px; display:block; margin-bottom:4px; }
@@ -78,27 +78,28 @@ header { padding:24px 0 20px; border-bottom:1px solid var(--border); display:fle
   color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:flex; align-items:center; gap:4px; }
 .conflict-dot { position:absolute; top:7px; right:7px; width:8px; height:8px;
-  border-radius:50%; background:#ffdd00; box-shadow:0 0 8px #ffdd00; }
+  border-radius:50%; background:#e6a800; box-shadow:0 0 6px rgba(230,168,0,.5); }
 
 /* Week + Day shared table */
 .week-grid, .day-grid { display:none; overflow-x:auto; }
 .week-grid.visible, .day-grid.visible { display:block; }
 .week-table { width:100%; border-collapse:collapse; min-width:500px; }
-.week-table th { background:var(--surface); padding:10px 8px; text-align:center;
+.week-table th { background:var(--surface2); padding:10px 8px; text-align:center;
   font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700;
   letter-spacing:1px; text-transform:uppercase; border:1px solid var(--border); color:var(--muted); }
 .week-table th.today-col { color:var(--accent); border-color:var(--accent); }
 .week-table td { border:1px solid var(--border); padding:4px 6px; vertical-align:top;
   background:var(--surface); min-width:90px; }
+  .week-table tr:hover td { background:#f8fafc; }
 .week-table .time-col { width:72px; text-align:right; padding-right:10px;
   font-size:10px; font-family:'Share Tech Mono',monospace; color:var(--muted);
-  background:var(--bg); white-space:nowrap; min-width:0; }
-.week-conflict-cell { background:rgba(255,221,0,.05) !important; }
+  background:var(--surface2); white-space:nowrap; min-width:0; }
+.week-conflict-cell { background:rgba(255,180,0,.12) !important; }
 .half-hour { opacity:.55; }
 
 .state-box { text-align:center; padding:60px 20px; color:var(--muted);
   font-family:'Share Tech Mono',monospace; font-size:13px;
-  border:1px dashed var(--border2); border-radius:12px; line-height:2; }
+  border:1px dashed var(--border2); border-radius:12px; line-height:2; background:var(--surface); }
 .refresh-btn { padding:7px 16px; background:transparent; border:1px solid var(--border2);
   color:var(--muted); border-radius:6px; cursor:pointer; font-size:12px;
   font-family:'Rajdhani',sans-serif; font-weight:600; letter-spacing:1px;
@@ -417,12 +418,41 @@ function renderWeek(ref) {
   for(let h=0;h<24;h++) {
     for(let m=0;m<60;m+=30) {
       const isHalf=m===30;
+      const slotMins=h*60+m;
       const label=isHalf?`<span style="font-size:9px;opacity:.5">${fmtSlotLabel(h,m)}</span>`:fmtSlotLabel(h,m);
       bHtml+=`<tr class="${isHalf?'half-hour':''}"><td class="time-col">${label}</td>`;
       weekDates.forEach(d=>{
-        const evts=getEventsForDate(new Date(d)).filter(e=>{const t=parseTime(e.tStart);return t===h*60+m;});
-        const chips=evts.map(e=>`<div class="event-chip" style="background:${LEAGUE_COLORS[e.league]||'#888'};margin-bottom:2px">${e.league} · ${e.mode}</div>`).join('');
-        bHtml+=`<td${evts.length>1?' class="week-conflict-cell"':''}>${chips}</td>`;
+        const allEvts=getEventsForDate(new Date(d));
+        // Events active in this slot (for background color)
+        const activeEvts=allEvts.filter(e=>{
+          const tS=parseTime(e.tStart);
+          let tE=parseTime(e.tEnd);
+          if(tS===null) return false;
+          if(tE===null) tE=tS+60; // default 1hr if no end time
+          if(tE<=tS) tE=tS+60;   // guard against bad data
+          return slotMins>=tS && slotMins<tE;
+        });
+        // Only show label chip at start slot
+        const startEvts=allEvts.filter(e=>{
+          const tS=parseTime(e.tStart);
+          return tS===slotMins;
+        });
+        const conflict=activeEvts.length>1;
+        let cellStyle=conflict?'background:rgba(255,180,0,.18);':'';
+        // Fill cell background with league color if event is active
+        if(activeEvts.length===1) {
+          const c=LEAGUE_COLORS[activeEvts[0].league]||'#888';
+          cellStyle=`background:${c}22;border-left:3px solid ${c};`;
+        } else if(activeEvts.length>1) {
+          cellStyle=`background:rgba(255,180,0,.15);border-left:3px solid #e6a800;`;
+        }
+        const chips=startEvts.map(e=>{
+          const c=LEAGUE_COLORS[e.league]||'#888';
+          const endMins=parseTime(e.tEnd);
+          const endLabel=endMins!==null?` → ${fmtSlotLabel(Math.floor(endMins/60),endMins%60)}`:'';
+          return `<div class="event-chip" style="background:${c};margin-bottom:2px;font-size:10px">${e.league} · ${e.mode}${endLabel}</div>`;
+        }).join('');
+        bHtml+=`<td style="${cellStyle}">${chips}</td>`;
       });
       bHtml+='</tr>';
     }
