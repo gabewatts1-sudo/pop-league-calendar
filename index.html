@@ -246,15 +246,42 @@ function parseDate(s) {
 }
 
 function parseTime(s) {
-  if (!s) return null;
+  if (s === null || s === undefined || s === '') return null;
   s = s.toString().trim();
-  const m = s.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!m) return null;
-  let h = parseInt(m[1]), mn = parseInt(m[2]);
-  const ap = m[3].toUpperCase();
-  if (ap==='PM' && h!==12) h+=12;
-  if (ap==='AM' && h===12) h=0;
-  return h*60+mn;
+
+  // Format: "7:00 PM" or "7:00:00 PM"
+  const ampm = s.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)/i);
+  if (ampm) {
+    let h = parseInt(ampm[1]), mn = parseInt(ampm[2]);
+    const ap = ampm[3].toUpperCase();
+    if (ap==='PM' && h!==12) h+=12;
+    if (ap==='AM' && h===12) h=0;
+    return h*60+mn;
+  }
+
+  // Format: "19:00" 24-hour
+  const mil = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (mil) {
+    return parseInt(mil[1])*60 + parseInt(mil[2]);
+  }
+
+  // Format: Google Sheets decimal fraction of day (e.g. 0.791666 = 19:00)
+  const num = parseFloat(s);
+  if (!isNaN(num) && num >= 0 && num < 1) {
+    const totalMins = Math.round(num * 24 * 60);
+    return totalMins;
+  }
+
+  return null;
+}
+
+function fmtTimeFromMins(mins) {
+  if (mins === null) return '';
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  const ap = h < 12 ? 'AM' : 'PM';
+  const hd = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hd}:${m === 0 ? '00' : '30'} ${ap}`;
 }
 
 function fmtSlotLabel(h, m) {
